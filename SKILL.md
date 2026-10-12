@@ -1,6 +1,6 @@
 ---
 name: social-publish-package
-description: 为视频、字幕、逐字稿或主题材料准备标题、正文和逐平台话题，生成可编辑的本地视频预发布工作台。用户选择后可复制发布信息；明确要求时再生成可选的一键发交接任务。
+description: 为视频、字幕、逐字稿或主题材料准备标题、正文和逐平台话题，可选调研与封面生图，生成可编辑的本地视频预发布工作台。用户选择后可复制发布信息；明确要求时再生成可选的一键发交接任务。
 ---
 
 # 视频预发布工作台
@@ -13,7 +13,7 @@ description: 为视频、字幕、逐字稿或主题材料准备标题、正文�
 - `video-prepublish`：默认模式。生成 5 个公共标题、3–4 个正文版本、逐平台话题和一个本地 HTML。终点是用户评审、编辑与复制。
 - `publish-handoff`：用户已选好并明确要求交接时，读取最新 selection，把它转换为逐平台任务 JSON。任务生成成功只代表离线转换通过；脚本不会实际发布。
 
-公开版没有内置账号、发布凭证、私人偏好或执行历史；不要求安装作者的其他 Skill。视频转写、素材制作、平台采样和真实发布均依赖用户已授权、实际可用的外部能力。
+公开版没有内置账号、发布凭证、私人偏好或执行历史；不要求安装作者的其他 Skill。本仓库打包了调研与封面制作流程；它们使用用户 Agent 已授权、实际可用的浏览器和原生生图工具。视频转写和真实发布仍需单独可用的能力。
 
 ## 读取合同
 
@@ -22,6 +22,19 @@ description: 为视频、字幕、逐字稿或主题材料准备标题、正文�
 - 标签配置读 `data/platform-tag-library.json`，默认为空，用户可自行添加有依据的条目。
 - 交接前读 `references/publish-selection.schema.json` 和 `references/yijianfa-handoff-contract.md`。
 - 合成输入参考 `examples/demo-input.json`；旧文件名 `examples/opc-fde-review-input.json` 仅保留测试兼容，其内容也是合成桌面整理示例。
+
+## 一次请求完成前置准备
+
+用户可以从一个主题开始，也可以提供已有图片、视频、逐字稿或文案。支持 `research=auto|skip`、`images=generate|reuse|none`、`reference_mode=none|gallery`；这些是 Agent 的执行选项，不是静态网页调用模型的开关。用户已给出的选项直接执行；请求“全部生成”时采用 research=auto、images=generate，复用现有证据、素材和授权。没有选择时，已有素材优先复用，缺少文案由 Agent 按实际材料补齐；联网和生成工具不可用时说明缺口。
+
+1. 参考 [前置准备示例](examples/preparation-brief.json)，写当前任务的 `brief.md`，包含主题、受众、平台、内容形式、数量、参考图册、来源限制与执行选项。输出目录放在仓库之外，不把任务素材或本机路径提交到 Git。
+2. research=auto 时读取并执行本仓库 [调研能力](capabilities/research/SKILL.md)，遵循 [来源契约](references/research-contract.md)。按主题查证事实、同批采集标题正文话题，记录来源和未知项；research=skip 时使用用户材料，并明确未调研。保留来源与采用理由，不用搜索摘要冒充原文。
+3. images=generate 时读取并执行本仓库 [生图能力](capabilities/image-production/SKILL.md)和 [提示词模板](references/image-prompts.md)。主题决定图片内容和数量；gallery 模式只使用用户授权的参考图册，提取构图、配色、版式，不写死姿势、人像或作者的私人图库。images=reuse 时核对已有文件，none 时保留上传槽或当前构建器允许的回退。实际生图由用户 Agent 的原生工具执行，不需要安装作者其他 Skill。
+4. Agent 基于当前材料、图片和已核验研究写标题、正文及话题候选。事实必须有输入或来源依据，方案不得伪装成经历、实测或热门。用户已有文案默认保留，新增不同侧重点的候选供选择。
+5. 将实际素材和候选转换到本仓库原输入 schema，继续下方校验、构建和用户评审流程。研究文件和图片清单独立保存，不把新字段随意塞入旧 schema。只登记真实文件与真实工具回执。
+6. 交付 HTML、规范输入、来源清单、资产清单和 `preparation-report.md`。报告逐项标 completed、partial、skipped 或 unavailable，并列出证据、生成数量、复用数量和缺口。禁止把生图提示词当成已生成图片，把离线脚本测试当成联网调研或真实发布。
+
+图文工作台可以从任意主题组织内页；视频工作台生成封面与发布文案，仍需用户提供视频或逐字稿。此包不会自动生成整条视频。
 
 ## 生成流程
 

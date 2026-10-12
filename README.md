@@ -6,6 +6,51 @@
 
 Preparing the same video for several destinations often means switching between notes, cover files and platform-specific copy. This skill lets an AI prepare options and gives you a page for the final decisions. Local generation needs no platform login, API key or publishing CLI. The page currently uses Chinese interface labels; the documentation is available in both languages.
 
+## Tell your AI what to prepare
+
+Place the complete repository in a Skill directory supported by your assistant. If it supports slash invocation, use the example below. Otherwise ask it to read this repository's `SKILL.md`; slash syntax is assistant-specific, not a button in the generated page.
+
+```text
+/social-publish-package
+Prepare publishing materials for my desk-organization video for beginners.
+Research the topic, draft headline/body/hashtag options, and generate missing covers.
+If I supply a reference gallery, use its layout and palette, replacing old subjects and copy.
+Build the workbench so I can choose and edit. Do not publish.
+```
+
+Supply your video and an existing transcript. If transcription is unavailable, the assistant must explain the gap. This workflow generates covers and publishing materials, not a finished video.
+
+| Option | What to request |
+|---|---|
+| Research | Research first, or use only my supplied material |
+| Images | Generate missing assets, or reuse my images |
+| Gallery reference | Follow my authorized gallery layout/palette, or use no gallery |
+| Full preparation | Start from the topic, prepare research, assets and copy, then build the workbench |
+
+Research and image-production instructions, prompt templates and the local image utility are bundled in this repository. Your assistant supplies authorized browser/search and native image-generation tools. With no such tools, you can still build from existing material. No accounts, provider credentials or author's other private skills are required. Tool availability, login and any paid budget must be handled explicitly.
+
+See [capability origins and scope](docs/capability-origins.md).
+
+[Preparation brief example](examples/preparation-brief.json) is for the Agent; the renderer still uses its original input schema.
+
+## See the workbench
+
+![Privacy-masked video pre-publish workbench preview](docs/screenshots/workbench-preview.png)
+
+Review the video and cover variants alongside headline and description options. Choose hashtags separately for each destination before copying the selected package.
+
+This privacy-masked illustration is based on the presentation example. Conversation content and local paths are covered in pale white; the left card is a suggested invocation, not an execution receipt. The detail screenshots below show the actual teaching interface. The example's video content and hashtags are illustrative, not current platform recommendations or evidence of a successful post.
+
+### Compare headlines
+
+![Video headline options and the selected headline](docs/screenshots/choose-title.png)
+
+### Select topics for each platform
+
+![Separate hashtag choices for Xiaohongshu, Douyin and other destinations](docs/screenshots/platform-tags.png)
+
+The rows show separate selections for Xiaohongshu, Douyin, Kuaishou, WeChat Channels, Bilibili and YouTube. Preparing a destination's copy does not publish it or connect an account.
+
 ![Illustrative workflow: prepare, review, copy, optional handoff](docs/workflow.svg)
 
 ## Typical situations
@@ -34,7 +79,7 @@ The demo can be regenerated anywhere with `--output-dir /absolute/path/demo`. Ge
 
 ![Illustrative page map: media, title, body, tags and copy](docs/page-map.svg)
 
-Both pictures are explanatory diagrams, not screenshots or evidence of a live publishing session.
+The workflow and page-map SVGs are explanatory diagrams. The teaching previews above show layout and controls, not evidence of a live posting session.
 
 ## Use it with an AI assistant
 
@@ -61,6 +106,16 @@ python3 scripts/build_publish_review.py --input /absolute/path/review-input.json
 Omit cover flags when you have no files for that slot. Without a vertical candidate, the builder crops the first frame to 3:4. This is a fallback preview, so check whether the composition is usable. Horizontal slots can stay empty. JSON defaults control which registered cover is selected; simply adding a landscape candidate does not always select it.
 
 ## Detailed capabilities
+
+### Preparation capabilities
+
+- Research comparable content and facts for the user's topic, recording sources, visible metrics and gaps.
+- Reuse supplied images or use an available image tool to make topic-specific assets and covers.
+- Optionally follow a user-authorized gallery's layout, palette and typography while preserving originals.
+- Draft headline, body and hashtag candidates from actual materials, then build the editable workbench.
+
+**Can preparation run from one request?** Yes, when your assistant has the necessary tools, asset permission and budget. It must report missing access or evidence; the static HTML does not call a model by itself.
+
 
 | Capability | What you can do | Boundary |
 | --- | --- | --- |
