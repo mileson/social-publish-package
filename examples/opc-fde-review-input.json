@@ -1,0 +1,189 @@
+{
+  "schema_version": "social-publish-package.v1",
+  "video": {
+    "display_title": "整理一张工作桌",
+    "core_viewpoint": "按用途归类物品，留出常用物品的位置。",
+    "fallback_cover": "first_frame"
+  },
+  "content": {
+    "titles": [
+      {
+        "text": "桌面整理从哪里开始",
+        "note": "问题入口"
+      },
+      {
+        "text": "给常用物品留个位置",
+        "note": "具体动作"
+      },
+      {
+        "text": "三步整理一张工作桌",
+        "note": "步骤入口"
+      },
+      {
+        "text": "整理前先按用途分类",
+        "note": "方法入口"
+      },
+      {
+        "text": "工作桌也能轻松找东西",
+        "note": "使用场景"
+      }
+    ],
+    "selected_title": 0,
+    "title_limit": 16,
+    "body": "先把物品按用途分组，再确定常用物品的位置。\n\n这是一份合成演示，不包含真实用户、账号或效果数据。",
+    "body_variants": [
+      {
+        "label": "步骤版",
+        "text": "先按用途分类，再安排常用物品的位置，最后清理不用的物品。"
+      },
+      {
+        "label": "场景版",
+        "text": "需要笔记本时能直接找到，需要充电时不用翻找线材。给常用物品安排固定位置。"
+      },
+      {
+        "label": "简洁版",
+        "text": "按用途分组，让常用物品更容易找到。"
+      }
+    ],
+    "selected_body": 0
+  },
+  "platforms": {
+    "xiaohongshu": {
+      "name": "小红书",
+      "mode": "separate",
+      "tag_limit": 10,
+      "tags": [
+        {
+          "name": "桌面整理",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "物品分类",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "工作空间",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        }
+      ]
+    },
+    "douyin": {
+      "name": "抖音",
+      "mode": "separate",
+      "tag_limit": 5,
+      "tags": [
+        {
+          "name": "桌面整理",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "物品分类",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "工作空间",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "整理方法",
+          "kind": "ai",
+          "selected": false,
+          "reason": "合成测试候选，未验证平台热度。"
+        },
+        {
+          "name": "收纳习惯",
+          "kind": "ai",
+          "selected": false,
+          "reason": "合成测试候选，未验证平台热度。"
+        }
+      ]
+    },
+    "kuaishou": {
+      "name": "快手",
+      "mode": "combined",
+      "tag_limit": 4,
+      "tags": [
+        {
+          "name": "桌面整理",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "物品分类",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "工作空间",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        }
+      ]
+    },
+    "shipinhao": {
+      "name": "视频号",
+      "mode": "combined",
+      "tag_limit": 7,
+      "tags": [
+        {
+          "name": "桌面整理",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "物品分类",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "工作空间",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        }
+      ]
+    },
+    "bilibili": {
+      "name": "B 站",
+      "mode": "separate",
+      "tag_limit": 10,
+      "tags": [
+        {
+          "name": "桌面整理",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "物品分类",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        },
+        {
+          "name": "工作空间",
+          "kind": "ai",
+          "selected": true,
+          "reason": "合成演示的内容主题，未验证平台热度。"
+        }
+      ]
+    }
+  }
+}

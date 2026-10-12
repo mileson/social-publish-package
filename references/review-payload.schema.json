@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/social-publish-package/review-payload.schema.json",
+  "title": "Social Publish Package Review Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "video",
+    "content",
+    "platforms"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "social-publish-package.v1"
+    },
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "display_title",
+        "core_viewpoint"
+      ],
+      "properties": {
+        "display_title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "core_viewpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cover_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coverCandidate"
+          }
+        },
+        "selected_cover_ids": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cover": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "bilibiliCover": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "horizontalCover": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "fallback_cover": {
+          "const": "first_frame"
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "titles",
+        "selected_title",
+        "title_limit",
+        "body"
+      ],
+      "properties": {
+        "titles": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "text",
+              "note"
+            ],
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "selected_title": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "title_limit": {
+          "const": 16
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body_variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "text"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "selected_body": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "xiaohongshu",
+        "douyin",
+        "kuaishou",
+        "shipinhao"
+      ],
+      "properties": {
+        "xiaohongshu": {
+          "$ref": "#/$defs/separateXhs"
+        },
+        "douyin": {
+          "$ref": "#/$defs/separateDouyin"
+        },
+        "kuaishou": {
+          "$ref": "#/$defs/combinedKuaishou"
+        },
+        "shipinhao": {
+          "$ref": "#/$defs/combinedShipinhao"
+        },
+        "bilibili": {
+          "$ref": "#/$defs/separateBilibili"
+        },
+        "youtube": {
+          "$ref": "#/$defs/separateYouTube"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "coverCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "path",
+        "role",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "cover",
+            "bilibiliCover",
+            "horizontalCover"
+          ]
+        },
+        "source": {
+          "enum": [
+            "provided",
+            "discovered",
+            "first_frame"
+          ]
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "selected",
+        "reason"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "preset",
+            "ai"
+          ]
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "eligible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "basePlatform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "mode",
+        "tag_limit",
+        "tags"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "separate",
+            "combined"
+          ]
+        },
+        "tag_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tag"
+          }
+        }
+      }
+    },
+    "separateXhs": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "小红书"
+            },
+            "mode": {
+              "const": "separate"
+            },
+            "tag_limit": {
+              "const": 10
+            }
+          }
+        }
+      ]
+    },
+    "separateDouyin": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "抖音"
+            },
+            "mode": {
+              "const": "separate"
+            },
+            "tag_limit": {
+              "const": 5
+            }
+          }
+        }
+      ]
+    },
+    "combinedKuaishou": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "快手"
+            },
+            "mode": {
+              "const": "combined"
+            },
+            "tag_limit": {
+              "const": 4
+            }
+          }
+        }
+      ]
+    },
+    "combinedShipinhao": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "视频号"
+            },
+            "mode": {
+              "const": "combined"
+            },
+            "tag_limit": {
+              "const": 7
+            }
+          }
+        }
+      ]
+    },
+    "separateBilibili": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "B 站"
+            },
+            "mode": {
+              "const": "separate"
+            },
+            "tag_limit": {
+              "const": 10
+            }
+          }
+        }
+      ]
+    },
+    "separateYouTube": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/basePlatform"
+        },
+        {
+          "properties": {
+            "name": {
+              "const": "YouTube"
+            },
+            "mode": {
+              "const": "separate"
+            },
+            "tag_limit": {
+              "const": 60
+            }
+          }
+        }
+      ]
+    }
+  }
+}

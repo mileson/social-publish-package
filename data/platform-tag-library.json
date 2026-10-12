@@ -1,0 +1,13 @@
+{
+  "schema_version": "social-publish-package.tag-library.v1",
+  "updated_at": null,
+  "selection_rules": {
+    "require_platform_match": true,
+    "require_active_window": true,
+    "require_scenario_match": true,
+    "require_source_readback": true,
+    "omit_when_unknown": true,
+    "never_fill_quota_for_its_own_sake": true
+  },
+  "tags": []
+}

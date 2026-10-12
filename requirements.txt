@@ -1,0 +1,2 @@
+# Only the demo generator uses Pillow. Core scripts use the Python standard library.
+Pillow>=10,<13

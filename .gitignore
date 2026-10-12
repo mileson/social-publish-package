@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+.env
+.env.*
+!.env.example
+output/
+local/
+*-视频预发布工作台.html
+publish-selection.json
+handoff-manifest.json

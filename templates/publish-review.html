@@ -1,0 +1,1600 @@
+<!doctype html>
+<!--
+# 文件说明书 (File Manual)
+## 核心功能 (Core Function)
+提供视频预发布评审的单文件 HTML 模板，在视频上方展示 3:4、4:3、16:9 三个独立封面槽，以及公共标题、公共正文、平台标签与复制操作。
+## 输入 (Input)
+由 build_publish_review.py 注入视频 URL、内容数据、平台图标和独立存储键。
+## 输出 (Output)
+输出无需服务即可打开的交互式本地 HTML，支持三种封面比例分别确认、容量提示、标签选择、内部滚动和平台化复制。
+## 定位 (Position)
+位于 social-publish-package 的渲染层，只负责确定性展示与交互，不负责内容推理。
+## 依赖 (Dependency)
+- build_publish_review.py：校验并替换模板占位符。
+- review-payload.schema.json：约束注入数据结构。
+## 维护规则 (Maintenance Rules)
+1. 每次修改代码逻辑后，必须检查并更新上述的【核心功能】、【输入】、【输出】等信息，确保文档与代码一致。
+2. 禁止修改或删除本【维护规则】章节的内容。
+3. 修改完成后，必须扫描当前文件所在的文件夹目录，找到对应的 [当前文件夹名称]_README.md 文档，并同步更新该 README 中关于本文件的描述信息。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__VIDEO_TITLE__ · 发布工作台</title>
+  <style>
+    :root {
+      --ink: #141712;
+      --paper: #f1efe7;
+      --panel: #fbfaf5;
+      --line: #c9c7bd;
+      --muted: #777970;
+      --acid: #c7ff45;
+      --acid-deep: #365200;
+      --amber: #ffcf5a;
+      --blue: #b9dcff;
+      --disabled: #a9aba4;
+      --shadow: 0 18px 50px rgba(20, 23, 18, .10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(20, 23, 18, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20, 23, 18, .035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+      min-height: 100vh;
+    }
+
+    button, textarea { font: inherit; }
+
+    button { color: inherit; }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 96px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, .6fr);
+      min-height: 310px;
+      background: var(--ink);
+      color: #f8f7f1;
+      border: 1px solid var(--ink);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .masthead-copy {
+      position: relative;
+      padding: clamp(28px, 5vw, 68px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .masthead-copy::after {
+      content: "FDE";
+      position: absolute;
+      right: -20px;
+      bottom: -70px;
+      font: 900 clamp(110px, 18vw, 250px)/1 "Avenir Next Condensed", sans-serif;
+      letter-spacing: -.08em;
+      color: rgba(255,255,255,.045);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 24px;
+      font: 800 12px/1 "Avenir Next Condensed", sans-serif;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--acid);
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      max-width: 780px;
+      font: 800 clamp(42px, 7vw, 92px)/.94 "Songti SC", "STSong", serif;
+      letter-spacing: -.06em;
+    }
+
+    .lede {
+      position: relative;
+      z-index: 1;
+      max-width: 660px;
+      margin: 34px 0 0;
+      color: rgba(248,247,241,.72);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .video-panel {
+      position: relative;
+      min-height: 310px;
+      background: #050605;
+      border-left: 1px solid rgba(255,255,255,.18);
+    }
+
+    .video-panel video {
+      width: 100%;
+      height: 100%;
+      min-height: 310px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .video-stamp {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 7px 10px;
+      background: var(--acid);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    .notice {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      margin: 18px 0 28px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: rgba(251,250,245,.72);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .notice strong { font-weight: 900; }
+
+    .status-pill {
+      flex: none;
+      padding: 6px 10px;
+      border: 1px solid var(--ink);
+      background: var(--amber);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .05em;
+    }
+
+    .platform-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid var(--ink);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+    }
+
+    .platform-tab {
+      appearance: none;
+      border: 0;
+      border-right: 1px solid var(--ink);
+      background: transparent;
+      padding: 16px 12px;
+      cursor: pointer;
+      font-weight: 900;
+      transition: background .16s ease, color .16s ease;
+    }
+
+    .platform-tab:last-child { border-right: 0; }
+    .platform-tab:hover { background: rgba(199,255,69,.32); }
+    .platform-tab.active { background: var(--ink); color: var(--acid); }
+    .platform-tab.confirmed::after { content: "  ✓"; color: var(--acid-deep); }
+    .platform-tab.active.confirmed::after { color: var(--acid); }
+
+    .workspace {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(330px, .8fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .column { display: grid; gap: 20px; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 15px;
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .card-kicker {
+      margin: 0 0 5px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    h2, h3 { margin: 0; }
+
+    h2 {
+      font: 800 23px/1.25 "Songti SC", "STSong", serif;
+    }
+
+    .counter {
+      flex: none;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      font: 800 11px/1 "Avenir Next Condensed", sans-serif;
+    }
+
+    .counter.full { background: var(--amber); border-color: var(--ink); }
+
+    .card-body { padding: 20px; }
+
+    .title-list { display: grid; gap: 10px; }
+
+    .title-option {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 30px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: transparent;
+      padding: 15px;
+      cursor: pointer;
+      transition: transform .14s ease, border-color .14s ease, background .14s ease;
+    }
+
+    .title-option:hover { transform: translateX(3px); border-color: var(--ink); }
+    .title-option.selected { background: var(--acid); border-color: var(--ink); }
+
+    .title-index {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 900;
+      background: var(--panel);
+    }
+
+    .title-main { font-weight: 900; line-height: 1.45; }
+    .title-note { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; font-weight: 500; }
+    .title-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+    .subsection-title {
+      margin: 20px 0 10px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--line);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 235px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      background: #fffef9;
+      color: var(--ink);
+      padding: 15px;
+      line-height: 1.75;
+      outline: none;
+    }
+
+    textarea:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(199,255,69,.48); }
+
+    .tag-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .legend-key { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 9px; height: 9px; border: 1px solid var(--ink); }
+    .legend-dot.preset { background: var(--amber); }
+    .legend-dot.content { background: var(--blue); }
+    .legend-dot.off { background: transparent; border-color: var(--disabled); }
+
+    .tag-list { display: grid; gap: 9px; }
+
+    .tag-option {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: transparent;
+      padding: 12px 13px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tag-option:hover:not(:disabled) { border-color: var(--ink); }
+    .tag-option.selected { border-color: var(--ink); background: rgba(199,255,69,.25); }
+    .tag-option.excluded { color: var(--disabled); }
+    .tag-option.excluded .tag-name { text-decoration: line-through; text-decoration-thickness: 1px; }
+    .tag-option:disabled { cursor: not-allowed; background: #ecebe5; }
+
+    .tag-name { font-size: 14px; font-weight: 900; }
+    .tag-reason { display: block; margin-top: 4px; font-size: 11px; line-height: 1.45; font-weight: 500; color: var(--muted); }
+    .tag-option.excluded .tag-reason { color: var(--disabled); }
+
+    .tag-meta { display: flex; align-items: center; gap: 6px; }
+
+    .tag-badge {
+      padding: 4px 6px;
+      border: 1px solid var(--ink);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+
+    .tag-badge.preset { background: var(--amber); }
+    .tag-badge.content { background: var(--blue); }
+
+    .source-link {
+      font-size: 10px;
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .source-link:hover { color: var(--ink); }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      appearance: none;
+      min-height: 44px;
+      border: 1px solid var(--ink);
+      background: var(--panel);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 900;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+
+    .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 3px 3px 0 var(--ink); }
+    .btn.primary { background: var(--acid); }
+    .btn.dark { background: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .38; cursor: not-allowed; }
+
+    .confirm-bar {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 17px 18px;
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .confirm-copy strong { display: block; font-size: 14px; }
+    .confirm-copy span { display: block; margin-top: 3px; color: rgba(241,239,231,.58); font-size: 11px; }
+    .confirm-bar .btn { flex: none; min-width: 132px; }
+
+    .final-card { margin-top: 20px; }
+
+    .final-card .card-body {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .final-progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 9px;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+    }
+
+    .progress-fill { height: 100%; width: 0; background: var(--acid); transition: width .25s ease; }
+    .progress-label { font-size: 12px; font-weight: 900; white-space: nowrap; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 100;
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      background: var(--ink);
+      color: var(--acid);
+      border: 1px solid var(--acid);
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 900;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 880px) {
+      .masthead { grid-template-columns: 1fr; }
+      .video-panel { border-left: 0; border-top: 1px solid rgba(255,255,255,.18); }
+      .workspace { grid-template-columns: 1fr; }
+      .platform-tabs { position: static; grid-template-columns: repeat(2, 1fr); }
+      .platform-tab:nth-child(2) { border-right: 0; }
+      .platform-tab:nth-child(-n+2) { border-bottom: 1px solid var(--ink); }
+      .final-card .card-body { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 18px, 1240px); padding-top: 9px; }
+      .masthead-copy { padding: 28px 22px; }
+      h1 { font-size: 46px; }
+      .notice { align-items: flex-start; flex-direction: column; }
+      .actions { grid-template-columns: 1fr; }
+      .title-option { grid-template-columns: 28px 1fr; }
+      .title-count { grid-column: 2; }
+      .confirm-bar { align-items: stretch; flex-direction: column; }
+      .confirm-bar .btn { width: 100%; }
+    }
+
+    /* 轻量报告风格：浅底、白卡、细边框、低阴影。 */
+    :root {
+      --ink: #1f252d;
+      --paper: #f9fafc;
+      --panel: #ffffff;
+      --line: #edf0f3;
+      --muted: #737d89;
+      --acid: #2f9d6a;
+      --acid-deep: #247f56;
+      --amber: #fff7f2;
+      --blue: #eef6ff;
+      --disabled: #a2aab3;
+      --shadow: 0 4px 14px rgba(31,37,45,.035);
+    }
+
+    body {
+      background: var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .shell { width: min(1440px, 100%); padding: 34px 36px 72px; }
+
+    .masthead {
+      min-height: 270px;
+      grid-template-columns: minmax(0, 1fr) 410px;
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: none;
+    }
+
+    .masthead-copy { padding: 34px 38px; }
+    .masthead-copy::after { display: none; }
+    .eyebrow { margin-bottom: 18px; color: #d97745; }
+
+    h1 {
+      max-width: none;
+      font-size: clamp(44px, 5.2vw, 70px);
+      line-height: 1.02;
+      color: var(--ink);
+    }
+
+    .lede { margin-top: 26px; max-width: 720px; color: #596572; font-size: 14px; line-height: 1.75; }
+
+    .video-panel {
+      min-height: 270px;
+      border-left: 1px solid var(--line);
+      background: #eef0f3;
+    }
+
+    .video-panel video { min-height: 270px; }
+    .video-stamp { background: rgba(255,255,255,.92); color: #596572; border-radius: 6px; letter-spacing: .04em; }
+
+    .notice {
+      margin: 16px 0;
+      padding: 14px 18px;
+      background: var(--panel);
+      border-color: var(--line);
+      border-radius: 10px;
+    }
+
+    .status-pill { border: 0; border-radius: 999px; background: #fff7f2; color: #d97745; }
+
+    .platform-tabs {
+      top: 8px;
+      border-color: var(--line);
+      border-radius: 10px;
+      box-shadow: 0 5px 18px rgba(31,37,45,.055);
+      overflow: hidden;
+    }
+
+    .platform-tab { border-right-color: var(--line); color: #596572; }
+    .platform-tab:hover { background: #f7f8fa; color: var(--ink); }
+    .platform-tab.active { background: #fff7f2; color: #d97745; }
+    .platform-tab.confirmed::after,
+    .platform-tab.active.confirmed::after { color: var(--acid); }
+
+    .workspace { gap: 16px; }
+    .column { gap: 16px; }
+
+    .card {
+      border-color: var(--line);
+      border-radius: 10px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .card-head { padding: 20px 22px 16px; border-bottom-color: var(--line); }
+    .card-kicker { color: #d97745; }
+    h2 { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 22px; }
+    .counter { border-color: var(--line); border-radius: 6px; background: #f7f8fa; color: #596572; }
+    .counter.full { border-color: #f0dacd; background: #fff7f2; color: #d97745; }
+
+    .title-option {
+      border-color: var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .title-option:hover { transform: none; border-color: #d7dde4; background: #f7f8fa; }
+    .title-option.selected { border-color: #b9dbc9; background: #eef8f3; }
+    .title-index { border: 0; background: #eef0f5; color: #4e5964; }
+    .title-option.selected .title-index { background: var(--acid); color: #fff; }
+    .title-note, .title-count { color: var(--muted); }
+
+    textarea {
+      border-color: #dde2e8;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    textarea:focus { border-color: #9fcaf0; box-shadow: 0 0 0 2px #e8f3fc; }
+
+    .tag-option { border-color: var(--line); border-radius: 8px; background: #fff; }
+    .tag-option:hover:not(:disabled) { border-color: #d7dde4; background: #f7f8fa; }
+    .tag-option.selected { border-color: #cfe6d8; background: #f4fbf7; }
+    .tag-option.excluded { color: var(--disabled); background: #fff; }
+    .tag-option:disabled { background: #f7f8fa; }
+    .tag-badge { border: 0; border-radius: 999px; padding: 5px 8px; }
+    .tag-badge.preset { background: #fff7f2; color: #d97745; }
+    .tag-badge.content { background: #eef6ff; color: #1972c2; }
+
+    .btn { border-color: #dde2e8; border-radius: 8px; background: #fff; color: #4e5964; }
+    .btn:hover:not(:disabled) { transform: none; border-color: #cbd2d9; box-shadow: 0 4px 12px rgba(31,37,45,.05); }
+    .btn.primary { border-color: var(--acid); background: var(--acid); color: #fff; }
+    .btn.dark { border-color: #1972c2; background: #1972c2; color: #fff; }
+
+    .confirm-bar {
+      margin-top: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .confirm-copy span { color: var(--muted); }
+    .progress-track { border-color: #dde2e8; border-radius: 999px; background: #f1f3f5; overflow: hidden; }
+    .progress-fill { background: var(--acid); }
+    .toast { border: 0; border-radius: 8px; background: #1f252d; color: #fff; box-shadow: 0 10px 30px rgba(31,37,45,.18); }
+
+    @media (max-width: 880px) {
+      .shell { padding: 22px 14px 52px; }
+      .masthead { grid-template-columns: 1fr; }
+      .video-panel { border-left: 0; border-top: 1px solid var(--line); }
+      .platform-tab:nth-child(2) { border-right: 0; }
+      .platform-tab:nth-child(-n+2) { border-bottom-color: var(--line); }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: 100%; padding: 14px 10px 44px; }
+      .masthead-copy { padding: 28px 22px; }
+      h1 { font-size: 42px; }
+    }
+
+    .report-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .report-header h1 {
+      margin: 0;
+      font: 800 clamp(36px, 4vw, 54px)/1.08 "Songti SC", "STSong", serif;
+      letter-spacing: -.045em;
+    }
+
+    .report-header p { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+
+    .review-layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 36%) minmax(0, 64%);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .video-rail { position: sticky; top: 18px; display: grid; gap: 14px; }
+
+    .video-card,
+    .rail-card,
+    .platform-review-card,
+    .handoff-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .video-card { background: var(--paper); }
+
+    .video-card video {
+      display: block;
+      width: calc(100% - 20px);
+      margin: 20px 0 0 20px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #eef0f3;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .video-card-copy { padding: 18px 20px; background: transparent; }
+    .video-card-copy h2 { margin: 4px 0 8px; font-size: 22px; }
+    .video-card-copy p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+
+    .cover-picker { padding: 14px 20px 16px; border-bottom: 1px solid var(--line); background: var(--paper); }
+    .cover-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .cover-picker-head strong { font-size: 12px; }
+    .cover-picker-row { display: flex; align-items: flex-start; justify-content: flex-start; min-width: 0; }
+    .cover-slots { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 8px; min-width: 0; }
+    .cover-slot { position: relative; display: grid; place-items: center; border: 1px dashed #cbd2d9; border-radius: 7px; background: #fff; overflow: hidden; cursor: pointer; }
+    .cover-slot[data-cover-slot="cover"] { aspect-ratio: 3 / 4; }
+    .cover-slot[data-cover-slot="bilibiliCover"] { aspect-ratio: 4 / 3; }
+    .cover-slot[data-cover-slot="horizontalCover"] { aspect-ratio: 16 / 9; }
+    .cover-slot.dragover { border-color: #2f9d6a; background: #eef8f3; }
+    .cover-slot:has(img) { border-style: solid; }
+    .cover-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cover-slot-empty { color: #8a949e; font-size: 9px; line-height: 1.3; text-align: center; }
+    .cover-slot-role { position: absolute; left: 5px; bottom: 5px; padding: 4px 6px; border-radius: 999px; background: rgba(31,37,45,.78); color: #fff; font-size: 9px; font-weight: 700; line-height: 1; white-space: nowrap; }
+    .cover-clear { position: absolute; top: 2px; right: 2px; z-index: 2; display: grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%; background: rgba(31,37,45,.78); color: #fff; line-height: 0; cursor: pointer; }
+    .cover-clear svg { display: block; width: 8px; height: 8px; pointer-events: none; }
+    .cover-clear:hover { background: #d95555; }
+    .cover-file-input { display: none; }
+
+    .rail-card { padding: 18px 20px; }
+    .rail-card h3 { margin: 0 0 10px; font-size: 15px; }
+    .fact-list { margin: 0; padding: 0; list-style: none; }
+    .fact-list li { padding: 9px 0; border-top: 1px solid var(--line); color: #596572; font-size: 12px; line-height: 1.6; }
+    .fact-list strong { color: var(--ink); }
+
+    .platform-feed { display: grid; gap: 12px; }
+
+    .platform-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .platform-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .platform-logo { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; object-fit: cover; background: #fff; border: 1px solid #e5e9ee; }
+    .platform-identity h2 { margin: 0; font-size: 19px; }
+    .platform-meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .meta-pill { padding: 5px 8px; border-radius: 999px; background: #f1f3f5; color: #67727d; font-size: 10px; font-weight: 700; white-space: nowrap; }
+
+    .platform-card-body { padding: 15px 16px 16px; }
+    .review-section + .review-section { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .review-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .review-section-head h3 { font-size: 13px; }
+    .review-section-head span { color: var(--muted); font-size: 10px; }
+
+    .title-choice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .title-choice-grid .title-option { grid-template-columns: 22px minmax(0,1fr); align-items: start; min-height: 76px; padding: 9px 10px; gap: 7px; }
+    .title-choice-grid .title-count { grid-column: 2; }
+    .title-choice-grid .title-main { font-size: 12px; line-height: 1.35; }
+    .title-choice-grid .title-note { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+    .title-choice-grid .title-count { font-size: 9px; }
+    .title-choice-grid .title-index { width: 22px; height: 22px; font-size: 9px; }
+
+    .platform-body-editor { min-height: 138px; padding: 11px 12px; font-size: 13px; line-height: 1.65; }
+
+    .platform-tag-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-capsule {
+      appearance: none;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid #dde2e8;
+      border-radius: 999px;
+      background: #fff;
+      color: #4e5964;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .tag-capsule:hover:not(:disabled) { border-color: #b9c3cc; background: #f7f8fa; }
+    .tag-capsule.selected.preset { border-color: #f0dacd; background: #fff7f2; color: #c96534; }
+    .tag-capsule.selected.content { border-color: #cfe1f2; background: #eef6ff; color: #1972c2; }
+    .tag-capsule.excluded { color: var(--disabled); background: #fff; }
+    .tag-capsule.excluded .tag-name { text-decoration: line-through; text-decoration-thickness: 1px; }
+    .platform-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .platform-actions .btn { min-height: 34px; padding: 6px 10px; font-size: 11px; }
+    .platform-actions .confirm-action { margin-left: auto; }
+
+    .handoff-card { margin-top: 18px; padding: 20px; }
+    .handoff-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+    @media (max-width: 980px) {
+      .review-layout { grid-template-columns: 1fr; }
+      .video-rail { position: static; grid-template-columns: 1fr; }
+      .video-card { display: flex; flex-direction: column; }
+      .video-card video { margin: 16px 20px 0; width: calc(100% - 40px); }
+      .video-card-copy { padding: 18px 20px 22px; }
+      .cover-picker { padding: 16px 20px; }
+      .cover-slots { max-width: 600px; gap: 14px; }
+    }
+
+    @media (max-width: 720px) {
+      .report-header { align-items: flex-start; flex-direction: column; }
+      .cover-picker { padding: 12px; }
+      .cover-picker-head { margin-bottom: 8px; }
+      .cover-slots { max-width: 500px; gap: 7px; }
+      .cover-slot-role { left: 3px; bottom: 3px; padding: 3px 4px; font-size: 7px; }
+      .video-card video { margin: 12px 0 0 12px; width: calc(100% - 24px); }
+      .title-choice-grid { grid-template-columns: 1fr; }
+      .title-choice-grid .title-option { min-height: auto; }
+      .platform-card-head { align-items: flex-start; }
+      .platform-meta { justify-content: flex-start; }
+      .platform-actions .confirm-action { width: 100%; margin-left: 0; }
+    }
+
+    .content-review-panel { display: grid; gap: 12px; }
+    .shared-content-card,
+    .platform-tags-card { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
+    .compact-card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .compact-card-head h2 { font-size: 19px; }
+    .compact-card-body { padding: 15px 16px 16px; }
+    .shared-content-flow { display: grid; gap: 10px; }
+    .five-title-grid {
+      display: flex;
+      gap: 6px;
+      padding-bottom: 4px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+      scrollbar-color: #dce1e6 transparent;
+    }
+    .five-title-grid::-webkit-scrollbar { height: 3px; }
+    .five-title-grid::-webkit-scrollbar-track { border-radius: 999px; background: #f4f6f8; }
+    .five-title-grid::-webkit-scrollbar-thumb { border-radius: 999px; background: #dce1e6; }
+    .five-title-grid::-webkit-scrollbar-thumb:hover { background: #cbd2d9; }
+    .five-title-grid .title-option { flex: 0 0 220px; width: 220px; grid-template-columns: 22px minmax(0,1fr); min-height: 62px; padding: 8px 9px; gap: 7px; align-items: start; scroll-snap-align: start; }
+    .five-title-grid .title-main { font-size: 12px; line-height: 1.35; }
+    .five-title-grid .title-note { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+    .five-title-grid .title-count { grid-column: 2; font-size: 9px; }
+    .five-title-grid .title-index { width: 22px; height: 22px; font-size: 9px; }
+
+    .body-display { padding: 12px 14px; border: 1px solid #dde2e8; border-radius: 8px; background: #fbfcfd; color: #3f4852; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+
+    .tag-platform-list { display: grid; gap: 0; }
+    .tag-platform-group { display: grid; grid-template-columns: 138px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+    .tag-platform-group:first-child { border-top: 0; }
+    .tag-platform-identity { display: flex; align-items: center; gap: 8px; }
+    .tag-platform-identity .platform-logo { width: 27px; height: 27px; flex-basis: 27px; }
+    .tag-platform-identity strong { display: block; font-size: 13px; }
+    .tag-platform-identity small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .tag-platform-capsules { display: flex; flex-wrap: wrap; column-gap: 3px; row-gap: 8px; padding-top: 5px; }
+    .tag-platform-capsules .tag-capsule { min-height: 19px; padding: 2px 6px; gap: 3px; font-size: 8px; }
+    .platform-copy-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+    .copy-action {
+      appearance: none;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      width: 45px;
+      min-height: 42px;
+      padding: 4px 3px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #596572;
+      font-size: 8px;
+      font-weight: 750;
+      line-height: 1.1;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .copy-action:hover { background: #f1f4f6; color: #1972c2; }
+    .copy-action svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+    .capacity-pill {
+      --capacity: 0%;
+      --capacity-color: #65b68d;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 18px;
+      padding: 0 7px;
+      border: 1px solid #dce2e6;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--capacity-color) 0 var(--capacity), #eef0f3 var(--capacity) 100%);
+      color: #34404a;
+      font-size: 8px;
+      font-weight: 850;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .capacity-pill.over {
+      --capacity-color: #e07777;
+      border-color: #e5b0b0;
+      color: #7f2f2f;
+    }
+    .five-title-grid .capacity-pill { grid-column: 2; justify-self: start; }
+    .tag-platform-identity .capacity-pill { margin-top: 4px; min-width: 44px; height: 16px; padding-inline: 6px; font-size: 7px; }
+
+    @media (max-width: 900px) {
+      .tag-platform-group { grid-template-columns: 120px minmax(0,1fr); }
+      .platform-copy-actions { grid-column: 2; justify-content: flex-start; }
+    }
+
+    @media (max-width: 620px) {
+      .tag-platform-group { grid-template-columns: 1fr; }
+      .platform-copy-actions { grid-column: 1; justify-content: flex-start; }
+    }
+
+    /* 单屏工作台：页面不滚动，只允许内容区内部滚动。 */
+    html, body { height: 100%; overflow: hidden; }
+    .shell {
+      display: flex;
+      flex-direction: column;
+      width: min(1440px, 100%);
+      height: 100vh;
+      padding: 18px 36px;
+      overflow: hidden;
+    }
+    .report-header { flex: 0 0 auto; margin-bottom: 14px; }
+    .report-header h1 { font-size: clamp(34px, 3.7vw, 50px); }
+    .review-layout { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+    .video-rail { position: static; min-height: 0; overflow: hidden; }
+    .video-card { max-height: 100%; }
+    .content-review-panel {
+      min-height: 0;
+      height: 100%;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+    .shared-content-card,
+    .platform-tags-card { display: flex; flex-direction: column; min-height: 0; }
+    .compact-card-body { flex: 1 1 auto; min-height: 0; }
+    .shared-content-card .compact-card-body { flex: 0 0 auto; }
+    .shared-content-flow { grid-template-rows: auto auto; overflow: visible; }
+    .body-display { height: auto; max-height: 150px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    .tag-platform-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    .body-display,
+    .tag-platform-list {
+      scrollbar-width: thin;
+      scrollbar-color: #dce1e6 transparent;
+    }
+    .body-display::-webkit-scrollbar,
+    .tag-platform-list::-webkit-scrollbar { width: 4px; }
+    .body-display::-webkit-scrollbar-track,
+    .tag-platform-list::-webkit-scrollbar-track { background: transparent; }
+    .body-display::-webkit-scrollbar-thumb,
+    .tag-platform-list::-webkit-scrollbar-thumb { border-radius: 999px; background: #dce1e6; }
+
+    .toast { background: #2f9d6a; color: #fff; box-shadow: 0 10px 30px rgba(47,157,106,.24); }
+    .toast.warning { background: #d97745; box-shadow: 0 10px 30px rgba(217,119,69,.22); }
+
+    @media (max-width: 980px) {
+      .shell { padding: 14px; }
+      .review-layout { grid-auto-rows: max-content; align-content: start; overflow-y: auto; overscroll-behavior: contain; }
+      .video-rail { display: block; min-height: auto; overflow: visible; }
+      .video-card { max-height: none; }
+      .content-review-panel { height: auto; grid-template-rows: auto auto; overflow: visible; }
+      .shared-content-card,
+      .platform-tags-card { min-height: 320px; }
+    }
+    @media (max-width: 720px) {
+      .video-card video { margin: 12px 12px 0; width: calc(100% - 24px); }
+    }
+    .body-editor-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 12px; color: #3f4852; }
+    #bodySaveStatus { color: #687580; font-size: 11px; }
+    textarea.body-display { display: block; box-sizing: border-box; width: 100%; height: 150px; min-height: 90px; flex-shrink: 0; font-family: inherit; resize: none; }
+    textarea.body-display:focus { outline: 2px solid #69a68a; outline-offset: 1px; background: #fff; }
+  
+    .shell{height:calc(100dvh - 80px - env(safe-area-inset-bottom))}
+    .tag-platform-group{grid-template-columns:155px minmax(0,1fr)}
+    .publish-footer{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border-top:1px solid #eee;padding:14px clamp(14px,2.2vw,40px) calc(14px + env(safe-area-inset-bottom));min-height:76px}
+    .copy-target{display:flex;align-items:center;gap:8px;color:#777;font-size:12px;white-space:nowrap}
+    #copyPlatform{font:inherit;color:#333;background:#f7f7f7;border:0;border-radius:8px;padding:9px 12px}
+    .publish-footer .copy-group{display:flex;align-items:center;justify-content:flex-end;gap:22px}
+    .publish-footer .copy-btn{display:flex;align-items:center;justify-content:center;gap:7px;border:0;padding:8px 0;background:transparent;color:#333;font-size:12px;cursor:pointer;white-space:nowrap}
+    .publish-footer .copy-btn:hover{color:#111}
+    .publish-footer .copy-btn.primary{background:#f2f2f2;border-radius:999px;padding:12px 20px;font-size:13px}
+    .publish-footer .copy-btn.primary:hover{background:#e8e8e8}
+    .publish-footer svg{flex:none;width:18px;height:18px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+    .publish-footer .icon-eye{fill:currentColor;stroke:none}
+    .publish-footer button:focus-visible,#copyPlatform:focus-visible{outline:2px solid #438eca;outline-offset:4px}
+    .toast{bottom:96px;z-index:60}
+    @media(max-width:720px){.shell{height:calc(100dvh - 134px - env(safe-area-inset-bottom))}.publish-footer{flex-wrap:wrap;gap:8px;padding:8px 14px calc(10px + env(safe-area-inset-bottom))}.publish-footer .copy-group{width:100%;justify-content:space-between;gap:8px}.publish-footer .copy-btn{font-size:11px}.publish-footer .copy-btn.primary{font-size:11px;padding:11px 12px}.toast{bottom:145px}.tag-platform-group{grid-template-columns:1fr}}
+
+    .publish-footer{flex-direction:column;justify-content:center;gap:10px;padding:12px 18px calc(12px + env(safe-area-inset-bottom))}
+    .publish-footer .copy-primary-row{display:flex;width:100%;justify-content:center}
+    .publish-footer .copy-btn.primary{background:#3A83F7;color:#fff;padding:12px 24px;font-size:13px}
+    .publish-footer .copy-btn.primary:hover{background:#3275df;color:#fff}
+    .publish-footer .copy-group{display:flex;width:100%;justify-content:center;gap:48px}
+    .shell{height:calc(100dvh - 126px - env(safe-area-inset-bottom))}
+    .toast{bottom:142px}
+    @media(max-width:720px){.publish-footer .copy-group{gap:32px}.publish-footer .copy-btn{font-size:12px}.shell{height:calc(100dvh - 126px - env(safe-area-inset-bottom))}}
+
+    /* 视频预览不再显示重复文案与外框；比例标记贴合封面左下角。 */
+    .video-card{border:0;box-shadow:none;border-radius:0;background:transparent}
+    .cover-picker{border:0}
+    .cover-slot-role{left:0;bottom:0;padding:5px 9px;border-radius:0 7px 0 0;background:#3A83F7;color:#fff;font-size:10px;line-height:1.2}
+    @media(max-width:720px){.cover-slot-role{left:0;bottom:0;padding:4px 7px;font-size:9px}}
+
+    /* 当前工作台：纯白底、无模块卡框，统一参考工作台滚动条。 */
+    :root{--paper:#fff;--panel:#fff}
+    html,body{background:#fff}
+    .shell,.review-layout,.video-rail,.content-review-panel,
+    .video-card,.cover-picker,.shared-content-card,.platform-tags-card,
+    .compact-card-head,.compact-card-body,.tag-platform-group{
+      background:transparent;border:0;box-shadow:none;border-radius:0;
+    }
+    .publish-footer{border:0}
+    *{scrollbar-width:thin!important;scrollbar-color:rgba(160,160,160,.32) transparent!important}
+    *::-webkit-scrollbar{width:4px!important;height:4px!important}
+    *::-webkit-scrollbar-track{background:transparent!important}
+    *::-webkit-scrollbar-thumb{background:rgba(160,160,160,.32)!important;border-radius:999px!important}
+    *::-webkit-scrollbar-thumb:hover{background:rgba(140,140,140,.48)!important}
+    *::-webkit-scrollbar-corner{background:transparent!important}
+
+    :root{--acid:#3A83F7;--acid-deep:#2563ce}
+    .capacity-pill{--capacity-color:#3A83F7;border-color:#caddfb;color:#234b83}
+    .capacity-pill.over{--capacity-color:#ef4444;border-color:#f5b6b6;color:#8f2020}
+    .title-option.selected{background:#edf4ff;border-color:#b9d3fb}
+    .title-option.selected .title-index{background:#3A83F7;color:#fff}
+    .tag-capsule.selected{background:#edf4ff;border-color:#caddfb;color:#2563ce}
+    textarea.body-display:focus{outline-color:#3A83F7}
+
+    /* 所有平台完整展开，由主内容区统一承接纵向滚动。 */
+    .review-layout{overflow-y:auto;overflow-x:hidden;align-content:start;overscroll-behavior-y:auto}
+    .content-review-panel{height:auto;min-height:0;grid-template-rows:auto auto;overflow:visible}
+    .shared-content-card,.platform-tags-card{height:auto;min-height:0;max-height:none;overflow:visible;flex:none}
+    .platform-tags-card .compact-card-body,.tag-platform-list{height:auto;min-height:0;max-height:none;overflow:visible;flex:none;overscroll-behavior:auto}
+    .video-rail{overflow:visible}
+    .video-card{max-height:none;overflow:visible}
+    textarea.body-display,textarea.body-display:hover,textarea.body-display:focus,textarea.body-display:focus-visible{
+      background:#f7f7f7;border:0;outline:none;box-shadow:none;overscroll-behavior-y:auto;
+    }
+
+    /* 计数胶囊与蓝色标签保持一致，不再使用深色进度填充。 */
+    .capacity-pill{background:#eef6ff;border-color:#cfe1f2;color:#1972c2}
+    .capacity-pill.over{background:#fff0f0;border-color:#f5b6b6;color:#d93030}
+
+    /* 与参考工作台对齐标签尺寸，平台名与计数在图标旁同排。 */
+    .tag-platform-capsules .tag-capsule{
+      font-size:8.8px;padding:5.6px 9.6px;min-height:0;
+      line-height:1.55;font-weight:400;border:0;border-radius:20px;
+    }
+    .tag-platform-capsules{gap:6px;padding-top:0}
+    .tag-platform-identity{align-items:center}
+    .tag-platform-identity>span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+    .tag-platform-identity strong{display:inline-block;line-height:1.3}
+    .tag-platform-identity .capacity-pill{margin-top:0;flex-shrink:0}
+    .tag-platform-group{grid-template-columns:minmax(155px,max-content) minmax(0,1fr)}
+    .capacity-pill{color:#333}
+    .capacity-pill.over{color:#d93030}
+    .tag-capsule.selected.content{color:#333}
+    @media(max-width:720px){.tag-platform-group{grid-template-columns:1fr}}
+
+    /* 紧凑底栏，顶部浅灰分隔。 */
+    .publish-footer{gap:6px;padding:8px 18px calc(8px + env(safe-area-inset-bottom));min-height:0;border-top:1px solid #ececec}
+    .publish-footer .copy-btn.primary{padding:10px 24px}
+    .publish-footer .copy-btn:not(.primary){padding:5px 0}
+    .shell{height:calc(100dvh - 108px - env(safe-area-inset-bottom));padding-bottom:8px}
+    .toast{bottom:120px}
+
+    /* 视口采用上下两块布局，底栏高度由按钮内容决定，消除固定预留空隙。 */
+    html{height:100%;overflow:hidden}
+    body{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:0}
+    .shell{flex:1 1 0;height:auto;min-height:0;padding-bottom:0}
+    .publish-footer{position:relative;flex:0 0 auto;left:auto;right:auto;bottom:auto;width:100%}
+    .tag-platform-capsules .tag-capsule .tag-name{font-size:inherit;font-weight:inherit;line-height:inherit}
+    .five-title-grid .title-option{display:flex;flex-direction:column;flex:0 0 175px;align-items:stretch;justify-content:flex-start;gap:8px;min-height:72px;padding:9.6px 12px;border:1px solid #eee;border-radius:10px;background:#fff;scroll-snap-align:start}
+    .five-title-grid .title-option.selected{border-color:#3A83F7;background:#fff}
+    .title-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .title-choice{appearance:none;border:0;background:transparent;padding:0;font:inherit;font-size:10px;color:#777;cursor:pointer}
+    .title-option.selected .title-choice{color:#3A83F7;font-weight:700}
+    .title-card-head .capacity-pill{min-width:43.4px;height:16.8px;padding:0 5.6px;font-size:7px}
+    .title-edit,.title-edit:hover,.title-edit:focus{display:block;width:100%;height:42px;min-height:42px;resize:none;overflow-y:auto;border:0;padding:0;outline:none;box-shadow:none;background:transparent;font-family:inherit;font-size:14px;line-height:1.5;font-weight:500;color:#333}
+
+    /* 参考工作台：单行标题输入，聚焦仅显示下划线。 */
+    .title-edit,.title-edit:hover{width:100%;min-width:0;height:auto;min-height:0;padding:3px 0;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:#333;font-size:11.2px;font-weight:500;line-height:1.55;outline:none;box-shadow:none}
+    .title-edit:focus,.title-edit:focus-visible{height:auto;min-height:0;padding:3px 0;border:0;border-bottom:1px solid #3A83F7;border-radius:0;outline:none;box-shadow:none;font-size:11.2px}
+
+    .tag-platform-identity .capacity-pill{background:#f5f5f5;border:0;box-shadow:none;color:#333}
+    .tag-platform-identity .capacity-pill.over{background:#fff0f0;color:#d93030;border:0}
+
+    /* 标题卡片：方向编号与字数同排，单行标题在下方。 */
+    .five-title-grid{gap:8px;padding-bottom:7px}
+    .five-title-grid .title-option{flex:0 0 175px;min-height:72px;padding:9.6px 12px;gap:8px;border-radius:10px;cursor:pointer}
+    .title-choice{font-size:10px;font-weight:500;color:#999;white-space:nowrap;text-align:left}
+    .title-edit,.title-edit:hover,.title-edit:focus{font-size:11.2px;font-weight:500;color:#222;line-height:1.55}
+    .title-card-head .capacity-pill{border:0;background:linear-gradient(to right,#cfe7ff 0 var(--capacity),#edf5fd var(--capacity) 100%);color:#333;font-weight:400}
+    .title-card-head .capacity-pill.over{background:#ef4444;color:#fff}
+
+    .content-review-panel{grid-template-rows:auto auto auto}
+    .body-versions-card{min-width:0;background:transparent;border:0;box-shadow:none}
+    .body-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    #bodyCount{background:#f7f7f7;color:#999;font-size:11px;padding:5px 8px;border-radius:20px;white-space:nowrap}
+    .body-options{display:flex;gap:6px;overflow-x:auto;min-width:0;max-width:100%;padding:0 0 8px;margin-bottom:4px}
+    .body-options button{flex:none;white-space:nowrap;font:inherit;font-size:11px;line-height:1.55;padding:6px 11px;border:0;border-radius:24px;background:#f5f5f5;color:#333;cursor:pointer}
+    .body-options button.active{background:#eef6ff;color:#3A83F7;font-weight:700}
+    .body-options button:focus-visible{outline:2px solid #3A83F7;outline-offset:1px}
+    .body-versions-card textarea.body-display{height:210px;max-height:none;background:#f7f7f7;border-radius:12px;padding:12px 14px}
+
+    /* 收紧模块间距，保持表单及按钮自身尺寸。 */
+    .review-layout{gap:12px}
+    .content-review-panel{gap:6px;align-content:start}
+    .compact-card-head{padding:8px 16px 6px}
+    .compact-card-head h2{margin:0}
+    .compact-card-body{padding:6px 16px 8px}
+    .cover-picker{padding-top:8px;padding-bottom:6px}
+    .video-card video{margin-top:8px}
+    .tag-platform-group{padding-top:8px;padding-bottom:8px;row-gap:8px}
+    @media(max-width:980px){.review-layout{row-gap:10px}}
+
+    .media-preview{position:relative;width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:#f7f7f7;border-radius:12px;overflow:hidden}
+    .media-preview>img,.video-card .media-preview>video{display:block;width:100%;height:100%;margin:0;object-fit:contain;border-radius:12px}
+    .media-preview>[hidden]{display:none!important}
+    #replacePreviewCover{position:absolute;right:10px;bottom:10px;padding:7px 12px;border:0;border-radius:20px;background:#fff;color:#333;font:inherit;font-size:11px;cursor:pointer;box-shadow:0 1px 6px #0001}
+    .media-thumbs{display:flex;align-items:stretch;gap:8px;margin-top:10px;padding:2px 0 6px;overflow-x:auto}
+    .media-thumbs .cover-slots{display:flex;gap:8px;flex:0 0 auto;width:auto;align-items:stretch}
+    .media-thumbs .cover-slot,.video-thumb{width:70px;height:90px;aspect-ratio:auto!important;flex:0 0 70px;border:1px solid #dce8fa;border-radius:8px;background:#f7f9fc;overflow:hidden;cursor:pointer}
+    .media-thumbs .cover-slot img{width:100%;height:100%;object-fit:contain}
+    .media-thumbs .cover-slot.active,.video-thumb.active{border:2px solid #3A83F7}
+    .media-thumbs .cover-slot-role{font-size:8px;padding:3px 4px}
+    .media-thumbs .cover-slot-empty{font-size:9px;padding:5px}
+    .video-thumb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#3A83F7;font:inherit;font-size:10px;padding:0}
+    .video-thumb svg{width:24px;height:24px}
+    .video-card{display:block}
+
+    /* Cover labels, real video thumbnail, and reference interaction feedback. */
+    .cover-type-badge{position:absolute;left:0;top:0;z-index:1;background:#3A83F7;color:#fff;font-size:10px;line-height:1.4;padding:3px 5px;border-radius:0 0 5px 0;pointer-events:none}
+    .video-thumb{position:relative;background:#202020}
+    .video-thumb img{width:100%;height:100%;object-fit:contain}
+    .video-thumb svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;padding:5px;border-radius:50%;background:#0008;color:#fff}
+    .toast,.toast.success{bottom:140px;background:#2f9d6a;color:#fff;border:0;padding:10px 18px;border-radius:10px;box-shadow:0 8px 30px #234e2430;font-size:13px;font-weight:400;transform:translate(-50%,15px);transition:.2s;max-width:calc(100vw - 32px);text-align:center}
+    .toast.warning{background:#fff3c4;color:#735b22;box-shadow:0 8px 28px #735b2214}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+  
+    /* Small screens share the preview's left and right content edges. */
+    @media (max-width:980px){
+      .content-review-panel .compact-card-head,
+      .content-review-panel .compact-card-body,
+      .content-review-panel .tag-platform-group{
+        padding-left:0;
+        padding-right:0;
+      }
+      .content-review-panel{min-width:0}
+    }
+  
+    /* Ratio labels remain readable without competing with the blue cover badge. */
+    .media-thumbs .cover-slot-role{background:rgba(55,60,67,.62);color:#fff}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    
+
+    <section class="review-layout">
+      <aside class="video-rail">
+        <article class="video-card">
+          <div class="media-preview" id="mediaPreview">
+            <img id="previewCover" alt="封面预览" hidden>
+            <video id="previewVideo" poster="__VIDEO_POSTER__" controls preload="metadata" src="__VIDEO_URL__"></video>
+            <button type="button" id="replacePreviewCover" hidden>更换封面</button>
+          </div>
+          <div class="media-thumbs" aria-label="封面与视频预览">
+            <div class="cover-slots" id="coverSlots"></div>
+            <button type="button" class="video-thumb" id="videoThumb" aria-label="预览视频"><img src="__VIDEO_POSTER__" alt="视频画面"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+          </div>
+          <input class="cover-file-input" id="verticalCoverInput" type="file" accept="image/png,image/jpeg,image/webp">
+          <input class="cover-file-input" id="bilibiliCoverInput" type="file" accept="image/png,image/jpeg,image/webp">
+          <input class="cover-file-input" id="horizontalCoverInput" type="file" accept="image/png,image/jpeg,image/webp">
+        </article>
+      </aside>
+
+      <section class="content-review-panel">
+        <article class="shared-content-card">
+          <header class="compact-card-head">
+            <div><h2>标题</h2></div>
+          </header>
+          <div class="compact-card-body shared-content-flow">
+            <div class="five-title-grid" id="sharedTitleList" aria-label="标题候选"></div>
+
+          </div>
+        </article>
+
+        <article class="body-versions-card">
+          <header class="compact-card-head body-heading"><h2>正文</h2><span id="bodyCount" aria-live="polite"></span></header>
+          <div class="compact-card-body">
+            <div class="body-options" id="bodyOptions" role="tablist" aria-label="正文版本"></div>
+            <textarea class="body-display" id="bodyDisplay" aria-label="发布正文" spellcheck="false"></textarea>
+          </div>
+        </article>
+
+        <article class="platform-tags-card">
+          <header class="compact-card-head">
+            <div><h2>各平台标签</h2></div>
+          </header>
+          <div class="tag-platform-list" id="tagPlatformList"></div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <div class="publish-footer"><div class="copy-primary-row"><button class="copy-btn primary" id="copyAI"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M7 16H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v1"/><rect x="7" y="7" width="14" height="14" rx="4"/><path d="M11.5 15.8q2.5 2.4 5 0"/><circle cx="11.5" cy="12.3" r=".65" class="icon-eye"/><circle cx="16.5" cy="12.3" r=".65" class="icon-eye"/></svg><span>复制发布信息给 AI</span></button></div><div class="copy-group"><button class="copy-btn" id="copyTitle"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M7 16H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v1"/><rect x="7" y="7" width="14" height="14" rx="4"/><path d="M11.5 15.8q2.5 2.4 5 0"/><circle cx="11.5" cy="12.3" r=".65" class="icon-eye"/><circle cx="16.5" cy="12.3" r=".65" class="icon-eye"/></svg><span>复制标题</span></button><button class="copy-btn" id="copyBody"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M7 16H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v1"/><rect x="7" y="7" width="14" height="14" rx="4"/><path d="M11.5 15.8q2.5 2.4 5 0"/><circle cx="11.5" cy="12.3" r=".65" class="icon-eye"/><circle cx="16.5" cy="12.3" r=".65" class="icon-eye"/></svg><span>复制正文与话题</span></button></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = "__STORAGE_KEY__";
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const platformIcons = __PLATFORM_ICONS_JSON__;
+    const reviewInitialData = __REVIEW_DATA_JSON__;
+
+    let state = normalizeState(loadState());
+    let toastTimer;
+    const temporaryCovers = {cover: null, bilibiliCover: null, horizontalCover: null};
+
+    const sharedTitleList = document.getElementById("sharedTitleList");
+    const bodyDisplay = document.getElementById("bodyDisplay");
+    const tagPlatformList = document.getElementById("tagPlatformList");
+    const coverSlots = document.getElementById("coverSlots");
+    const coverInputs = {
+      cover: document.getElementById("verticalCoverInput"),
+      bilibiliCover: document.getElementById("bilibiliCoverInput"),
+      horizontalCover: document.getElementById("horizontalCoverInput"),
+    };
+    const toast = document.getElementById("toast");
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : clone(reviewInitialData);
+      } catch (_) {
+        return clone(reviewInitialData);
+      }
+    }
+
+    function normalizeState(value) {
+      const next = value && typeof value === "object" ? value : clone(reviewInitialData);
+      next.covers.selectedCoverIds.bilibiliCover ??= null;
+      next.covers.selectedCoverIds.horizontalCover ??= null;
+      if (!Array.isArray(next.bodyVariants) || !next.bodyVariants.length) {
+        next.bodyVariants = [{label:"原始正文", text:typeof next.body === "string" ? next.body : reviewInitialData.body}];
+        next.selectedBody = 0;
+      }
+      if (!Number.isInteger(next.selectedBody) || !next.bodyVariants[next.selectedBody]) next.selectedBody = 0;
+      next.body = next.bodyVariants[next.selectedBody].text;
+      return next;
+    }
+
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function selectedTitle() { return state.titles[state.selectedTitle]?.text || ""; }
+    function selectedTags(platform) { return platform.tags.filter(tag => tag.selected).map(tag => tag.name); }
+    function tagLine(platform) { return selectedTags(platform).map(tag => `#${tag}`).join(" "); }
+    function bodyWithTags(platform) { return [state.body.trimEnd(), tagLine(platform)].filter(Boolean).join("\n\n"); }
+    function combinedText(platform) { return [selectedTitle(), state.body.trimEnd(), tagLine(platform)].filter(Boolean).join("\n\n"); }
+    function shipinhaoShortTitle(value) {
+      return Array.from(String(value || ""))
+        .filter(character => /[\p{L}\p{N}\s]/u.test(character))
+        .join("")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    function platformTitle(platformId) {
+      return platformId === "shipinhao" ? shipinhaoShortTitle(selectedTitle()) : selectedTitle();
+    }
+    function stableSelectedCover(role) {
+      const id = state.covers.selectedCoverIds[role];
+      return state.covers.candidates.find(candidate => candidate.id === id && candidate.role === role) || null;
+    }
+    function selectedSlotCover(role) { return temporaryCovers[role] || stableSelectedCover(role); }
+    function resolvedCover(role) {
+      const selected = selectedSlotCover(role);
+      if (selected) return selected;
+      return role === "cover" ? state.covers.fallbackCover : null;
+    }
+
+    function clearTemporaryCover(role) {
+      if (temporaryCovers[role]?.previewUrl) URL.revokeObjectURL(temporaryCovers[role].previewUrl);
+      temporaryCovers[role] = null;
+    }
+
+    function coverRoleLabel(role) { return {cover: "3:4 竖版", bilibiliCover: "4:3 横版", horizontalCover: "16:9 横版"}[role] || "封面"; }
+
+    async function sha256File(file) {
+      if (!window.crypto?.subtle) return null;
+      const digest = await window.crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+    }
+
+    let activePreview = "video";
+    function updateMediaPreview() {
+      const video = document.getElementById("previewVideo");
+      const img = document.getElementById("previewCover");
+      const replace = document.getElementById("replacePreviewCover");
+      const cover = activePreview === "video" ? null : resolvedCover(activePreview);
+      video.hidden = Boolean(cover);
+      img.hidden = !cover;
+      replace.hidden = activePreview === "video";
+      if (cover) {
+        if (!video.paused) video.pause();
+        img.src = cover.previewUrl;
+        img.alt = coverRoleLabel(activePreview) + "封面预览";
+      } else img.removeAttribute("src");
+      document.getElementById("videoThumb").classList.toggle("active", activePreview === "video");
+      document.getElementById("videoThumb").setAttribute("aria-pressed", String(activePreview === "video"));
+      coverSlots.querySelectorAll("[data-cover-slot]").forEach(slot => {
+        const active = slot.dataset.coverSlot === activePreview;
+        slot.classList.toggle("active", active);
+        slot.setAttribute("aria-pressed", String(active));
+      });
+    }
+    document.getElementById("videoThumb").addEventListener("click", () => { activePreview = "video"; updateMediaPreview(); });
+    document.getElementById("replacePreviewCover").addEventListener("click", () => { if (coverInputs[activePreview]) coverInputs[activePreview].click(); });
+    function renderCovers() {
+      const roles = ["cover", "bilibiliCover", "horizontalCover"];
+      coverSlots.innerHTML = roles.map(role => {
+        const selected = selectedSlotCover(role);
+        return `
+          <div class="cover-slot" data-cover-slot="${role}">
+            ${selected ? `<img src="${escapeAttribute(selected.previewUrl)}" alt="${coverRoleLabel(role)}封面">` : `<span class="cover-slot-empty">选择${coverRoleLabel(role)}封面</span>`}
+            <span class="cover-type-badge">封面</span><span class="cover-slot-role">${coverRoleLabel(role)}</span>
+            ${selected ? `<button class="cover-clear" type="button" data-clear-cover="${role}" aria-label="清空${coverRoleLabel(role)}封面"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2L8 8M8 2L2 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>` : ""}
+          </div>
+        `;
+      }).join("");
+      coverSlots.querySelectorAll("[data-cover-slot]").forEach(slot => {
+        const role = slot.dataset.coverSlot;
+        const selectPreview = () => {
+          activePreview = role;
+          updateMediaPreview();
+          if (!selectedSlotCover(role)) coverInputs[role].click();
+        };
+        slot.addEventListener("click", selectPreview);
+        slot.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectPreview();
+          }
+        });
+        slot.tabIndex = 0;
+        slot.setAttribute("role", "button");
+        ["dragenter", "dragover"].forEach(eventName => slot.addEventListener(eventName, event => {
+          event.preventDefault();
+          slot.classList.add("dragover");
+        }));
+        ["dragleave", "drop"].forEach(eventName => slot.addEventListener(eventName, event => {
+          event.preventDefault();
+          slot.classList.remove("dragover");
+        }));
+        slot.addEventListener("drop", event => void handleCoverFile(event.dataTransfer?.files?.[0], role));
+      });
+      coverSlots.querySelectorAll("[data-clear-cover]").forEach(button => button.addEventListener("click", event => {
+        event.stopPropagation();
+        const role = button.dataset.clearCover;
+        clearTemporaryCover(role);
+        state.covers.selectedCoverIds[role] = null;
+        saveState();
+        renderCovers();
+        showToast(role === "cover" ? "已清空竖版封面，发布时将使用 3:4 第一帧候选" : "已清空横版封面", "success");
+      }));
+      updateMediaPreview();
+    }
+
+    async function handleCoverFile(file, role) {
+      if (!file) return;
+      const matched = state.covers.candidates.find(candidate =>
+        candidate.fileName.toLocaleLowerCase() === file.name.toLocaleLowerCase()
+        && (!candidate.size || candidate.size === file.size)
+      );
+      if (matched) {
+        if (matched.role !== role) {
+          showToast(`该文件已登记为${coverRoleLabel(matched.role)}封面，请放入对应槽位`, "warning");
+          return;
+        }
+        clearTemporaryCover(matched.role);
+        state.covers.selectedCoverIds[matched.role] = matched.id;
+        saveState();
+        renderCovers();
+        showToast(`已选择${coverRoleLabel(matched.role)}封面`, "success");
+        return;
+      }
+      clearTemporaryCover(role);
+      temporaryCovers[role] = {
+        id: `temporary-${role}`,
+        label: coverRoleLabel(role),
+        fileName: file.name,
+        size: file.size,
+        lastModified: file.lastModified,
+        sha256: await sha256File(file),
+        path: null,
+        role,
+        source: "temporary",
+        previewUrl: URL.createObjectURL(file),
+        publishable: false,
+      };
+      renderCovers();
+    }
+
+    function capacityPill(current, limit) {
+      const ratio = limit > 0 ? Math.min(100, Math.max(0, current / limit * 100)) : 0;
+      const over = current > limit;
+      return `<span class="capacity-pill${over ? " over" : ""}" style="--capacity:${ratio}%" aria-label="已使用 ${current}，上限 ${limit}">${current}/${limit}</span>`;
+    }
+
+    const titleDirections = state.titles.map((title, index) => title.label || `方案${index + 1}`);
+    function renderTitles() {
+      sharedTitleList.innerHTML = state.titles.map((item, index) => `
+        <div class="title-option${state.selectedTitle === index ? " selected" : ""}" data-title-card="${index}">
+          <div class="title-card-head">
+            <button type="button" class="title-choice" data-shared-title="${index}" aria-pressed="${state.selectedTitle === index}">${String(index + 1).padStart(2, "0")} · ${escapeHtml(titleDirections[index] || "备选标题")}</button>
+            <span data-title-count="${index}">${capacityPill(Array.from(item.text).length, 16)}</span>
+          </div>
+          <input type="text" class="title-edit" data-title-edit="${index}" aria-label="编辑标题${index + 1}" spellcheck="false" value="${escapeAttribute(item.text)}">
+        </div>
+      `).join("");
+    }
+
+    function renderTagCapsules(platformId, platform) {
+      return platform.tags
+        .map((tag, index) => ({ tag, index }))
+        .sort((left, right) => {
+          if (left.tag.selected !== right.tag.selected) return Number(right.tag.selected) - Number(left.tag.selected);
+          return left.index - right.index;
+        })
+        .map(({ tag, index }) => {
+        const stateClass = tag.selected ? "selected" : "excluded";
+        const kindLabel = tag.kind === "preset" ? "预设" : "AI 生成";
+        const sourceHint = tag.source ? ` 来源：${tag.source}` : "";
+        return `
+          <button class="tag-capsule ${tag.kind} ${stateClass}" type="button"
+            data-platform="${platformId}" data-tag-index="${index}" aria-pressed="${Boolean(tag.selected)}"
+            title="${escapeAttribute(`${kindLabel}｜${tag.reason}${sourceHint}`)}">
+            <span class="tag-name">#${escapeHtml(tag.name)}</span>
+          </button>
+        `;
+        }).join("");
+    }
+
+    function copyIconSvg() {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>`;
+    }
+
+    function renderTagPlatforms() {
+      tagPlatformList.innerHTML = Object.entries(state.platforms).map(([id, platform]) => `
+        <section class="tag-platform-group">
+          <div class="tag-platform-identity">
+            <img class="platform-logo" src="${platformIcons[id]}" alt="${escapeAttribute(platform.name)} Logo">
+            <span><strong>${escapeHtml(platform.name)}</strong>${capacityPill(selectedTags(platform).length, platform.tagLimit)}</span>
+          </div>
+          <div class="tag-platform-capsules">${renderTagCapsules(id, platform)}</div>
+        </section>
+      `).join("");
+    }
+
+    function updateBodyCount() {
+      document.getElementById("bodyCount").textContent = `${Array.from(state.body).length} 字`;
+    }
+    function renderBodyOptions() {
+      const options = document.getElementById("bodyOptions");
+      options.innerHTML = state.bodyVariants.map((variant, index) => `<button type="button" role="tab" aria-selected="${state.selectedBody === index}" class="${state.selectedBody === index ? "active" : ""}" data-body-version="${index}">版本${index + 1}：${escapeHtml(variant.label)}</button>`).join("");
+      options.querySelectorAll("[data-body-version]").forEach(button => button.addEventListener("click", () => {
+        state.bodyVariants[state.selectedBody].text = bodyDisplay.value;
+        state.selectedBody = Number(button.dataset.bodyVersion);
+        state.body = state.bodyVariants[state.selectedBody].text;
+        bodyDisplay.value = state.body;
+        try { saveState(); } catch (_) { showToast("暂未保存，请先复制正文再离开", "warning"); }
+        renderBodyOptions();
+        updateBodyCount();
+      }));
+    }
+    function render() {
+      renderCovers();
+      renderTitles();
+      bodyDisplay.value = state.body;
+      renderBodyOptions();
+      updateBodyCount();
+      renderTagPlatforms();
+      bindInteractions();
+    }
+
+    function bindInteractions() {
+      sharedTitleList.querySelectorAll("[data-title-edit]").forEach(input => input.addEventListener("input", () => {
+        const index = Number(input.dataset.titleEdit);
+        state.titles[index].text = input.value;
+        sharedTitleList.querySelector(`[data-title-count="${index}"]`).innerHTML = capacityPill(Array.from(input.value).length, 16);
+        try { saveState(); } catch (_) { showToast("暂未保存，请先复制标题再离开", "warning"); }
+      }));
+      const selectTitleCard = index => {
+        state.selectedTitle = index;
+        sharedTitleList.querySelectorAll("[data-title-card]").forEach(card => card.classList.toggle("selected", Number(card.dataset.titleCard) === index));
+        sharedTitleList.querySelectorAll("[data-shared-title]").forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.sharedTitle) === index)));
+        try { saveState(); } catch (_) { showToast("暂未保存，请先复制标题再离开", "warning"); }
+      };
+      sharedTitleList.querySelectorAll("[data-title-card]").forEach(card => card.addEventListener("click", () => selectTitleCard(Number(card.dataset.titleCard))));
+      sharedTitleList.querySelectorAll("[data-title-edit]").forEach(input => input.addEventListener("focus", () => selectTitleCard(Number(input.dataset.titleEdit))));
+
+      tagPlatformList.querySelectorAll("[data-tag-index]").forEach(button => button.addEventListener("click", () => {
+        const platform = state.platforms[button.dataset.platform];
+        const tag = platform.tags[Number(button.dataset.tagIndex)];
+        if (!tag.selected && selectedTags(platform).length >= platform.tagLimit) {
+          showToast(`${platform.name}最多选择 ${platform.tagLimit} 个标签`, "warning");
+          return;
+        }
+        tag.selected = !tag.selected;
+        saveState();
+        render();
+      }));
+
+
+    }
+
+    Object.entries(coverInputs).forEach(([role, input]) => input.addEventListener("change", async () => {
+      await handleCoverFile(input.files?.[0], role);
+      input.value = "";
+    }));
+
+    window.getPublishReviewSelection = () => {
+      const verticalCover = resolvedCover("cover");
+      const bilibiliCover = resolvedCover("bilibiliCover");
+      const horizontalCover = resolvedCover("horizontalCover");
+      const serializeCover = cover => cover ? {
+        id: cover.id,
+        fileName: cover.fileName || null,
+        size: Number.isFinite(cover.size) ? cover.size : null,
+        sha256: cover.sha256 || null,
+        path: cover.path,
+        role: cover.role,
+        source: cover.source,
+        publishable: cover.publishable === true,
+      } : null;
+      return {
+        schema_version: "social-publish-package.selection.v3",
+        title: selectedTitle(),
+        body: state.body,
+        platforms: Object.fromEntries(Object.entries(state.platforms).map(([id, platform]) => [id, {
+          mode: platform.mode,
+          title: platformTitle(id),
+          tags: selectedTags(platform),
+        }])),
+        covers: {
+          verticalCover: serializeCover(verticalCover),
+          bilibiliCover: serializeCover(bilibiliCover),
+          horizontalCover: serializeCover(horizontalCover),
+          horizontalCoverEnabled: Boolean(horizontalCover),
+          selectedCoverIds: {...state.covers.selectedCoverIds},
+        },
+      };
+    };
+
+    async function copyText(text, message) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (_) {
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.style.position = "fixed";
+        helper.style.opacity = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        helper.remove();
+      }
+      showToast(message, "success");
+    }
+
+    function showToast(message, tone = "success") {
+      toast.textContent = message;
+      toast.classList.remove("success", "warning");
+      toast.classList.add(tone);
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2300);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character]));
+    }
+
+    function escapeAttribute(value) { return escapeHtml(value).replace(/'/g, "&#39;"); }
+
+    function handleBodyInput() {
+      state.body = bodyDisplay.value;
+      state.bodyVariants[state.selectedBody].text = state.body;
+      updateBodyCount();
+      try {
+        saveState();
+      } catch (_) {
+        showToast("暂未保存，请先复制正文再离开", "warning");
+      }
+    }
+    bodyDisplay.addEventListener("input", handleBodyInput);
+    document.getElementById("copyTitle").onclick = () => copyText(selectedTitle(), "标题已复制");
+    document.getElementById("copyBody").onclick = () => {
+      const content = Object.entries(state.platforms).map(([id, platform]) =>
+        `【${platform.name}】\n${platform.mode === "combined" ? combinedText(platform) : bodyWithTags(platform)}`
+      ).join("\n\n────────\n\n");
+      copyText(content, "各平台正文与话题已复制");
+    };
+    document.getElementById("copyAI").onclick = () => {
+      const selection = window.getPublishReviewSelection();
+      const video = document.querySelector("video");
+      selection.video = {path: __VIDEO_PATH_JSON__, preview_url: video?.currentSrc || video?.src || null};
+      copyText("视频发布信息\n\n" + JSON.stringify(selection, null, 2), "发布信息已复制，可粘贴给 AI");
+    };
+    render();
+  </script>
+</body>
+</html>

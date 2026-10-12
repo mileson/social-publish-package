@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/social-publish-package/publish-selection.schema.json",
+  "title": "Social Publish Package Review Selection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "title", "body", "platforms", "covers"],
+  "properties": {
+    "schema_version": {"const": "social-publish-package.selection.v3"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 16},
+    "body": {"type": "string", "minLength": 1},
+    "platforms": {
+      "type": "object",
+      "required": ["xiaohongshu", "douyin", "kuaishou", "shipinhao"],
+      "additionalProperties": false,
+      "properties": {
+        "xiaohongshu": {"$ref": "#/$defs/platform"},
+        "douyin": {"$ref": "#/$defs/platform"},
+        "kuaishou": {"$ref": "#/$defs/platform"},
+        "shipinhao": {"$ref": "#/$defs/platform"},
+        "bilibili": {"$ref": "#/$defs/platform"},
+        "youtube": {"$ref": "#/$defs/platform"}
+      }
+    },
+    "covers": {
+      "type": "object",
+      "required": ["verticalCover", "horizontalCover", "horizontalCoverEnabled", "selectedCoverIds"],
+      "additionalProperties": false,
+      "properties": {
+        "verticalCover": {"$ref": "#/$defs/nullableCover"},
+        "bilibiliCover": {"$ref": "#/$defs/nullableCover"},
+        "horizontalCover": {"$ref": "#/$defs/nullableCover"},
+        "horizontalCoverEnabled": {"type": "boolean"},
+        "selectedCoverIds": {"type": "object"}
+      }
+    }
+  },
+  "$defs": {
+    "platform": {
+      "type": "object",
+      "required": ["mode", "title", "tags"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["separate", "combined"]},
+        "title": {"type": "string", "minLength": 1},
+        "tags": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "nullableCover": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "fileName", "size", "sha256", "path", "role", "source", "publishable"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "fileName": {"type": ["string", "null"]},
+            "size": {"type": ["integer", "null"], "minimum": 0},
+            "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+            "path": {"type": ["string", "null"]},
+            "role": {"enum": ["cover", "bilibiliCover", "horizontalCover"]},
+            "source": {"type": "string"},
+            "publishable": {"type": "boolean"}
+          }
+        }
+      ]
+    }
+  }
+}
